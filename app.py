@@ -22,4 +22,4 @@ if st.button("Submit"):
             1 : "Positif"
         }
         st.subheader("Hasil Analisis Komentar")
-        st.write(" ** Komentar : ** ", label_map.get (prediksi, prediksi))
+        st.write(" **Komentar :** ", label_map.get (prediksi, prediksi))
