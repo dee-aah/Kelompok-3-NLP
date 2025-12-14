@@ -3,8 +3,8 @@ import streamlit as st
 import seaborn
 import matplotlib
 
-model = joblib.load("models/model_logistic_regression.pkl")
-tfidf = joblib.load("models/tfidf_vectorizer.pkl")
+model = joblib.load("models/model_svm (2).pkl")
+tfidf = joblib.load("models/tfidf.pkl")
 
 st.title("Aplikasi Klasifikasi Komentar Publik")
 st.write("Aplikasi Ini Dibuat dengan Teknologi NLP dengan Memanfaatkan Model Machine Learning Logistic Regression")
@@ -18,8 +18,18 @@ if st.button("Submit"):
         prediksi = model.predict(vector)[0]
 
         label_map = {
-            0 : "Negatif",
-            1 : "Positif"
+            0 : "Ham",
+            1 : "Spam"
         }
+        # 3. Menampilkan Hasil (Menggunakan st.markdown/f-string untuk menghindari potensi sensor)
+        hasil_prediksi = label_map.get(prediksi, "Tidak Diketahui")
+        
         st.subheader("Hasil Analisis Komentar")
-        st.write(" **Komentar :** ", label_map.get (prediksi, prediksi))
+        
+        # SOLUSI MASALAH SENSOR/FORMAT: Menggunakan st.markdown dengan f-string
+        if hasil_prediksi == "Spam":
+            st.error(f"**Klasifikasi:** **{hasil_prediksi}**") # Tampilkan dengan warna error jika Spam
+        else:
+            st.success(f"**Klasifikasi:** **{hasil_prediksi}**") # Tampilkan dengan warna success jika Ham
+        
+        st.caption(f"Komentar yang dimasukkan: '{input}'")
