@@ -125,7 +125,7 @@ with tab1:
         video_id = st.text_input("Masukkan YouTube Video ID")
 
         c1, c2 = st.columns(2)
-        if c1.button("▶ Mulai",type="primary"):
+        if c1.button("▶ Mulai", type="primary"):
             st.session_state.is_running = True
             st.session_state.start_time = datetime.now()
             st.session_state.all_comments = pd.DataFrame(columns=["Waktu", "Komentar", "Prediksi"])
