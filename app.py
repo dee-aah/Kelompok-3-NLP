@@ -9,8 +9,8 @@ from streamlit_autorefresh import st_autorefresh
 # ======================================================
 # CONFIG
 # ======================================================
-MODEL_PATH = "models/model_svm (4).pkl"
-TFIDF_PATH = "models/tfidf (5).pkl"
+MODEL_PATH = "models/model_logreg.pkl"
+TFIDF_PATH = "models/tfidf.pkl"
 REFRESH_INTERVAL = 5000
 label_map = {0: "Ham", 1: "Spam", 2: "Toxic"}
 
