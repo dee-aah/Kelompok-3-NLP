@@ -83,6 +83,7 @@ def fetch_live_chat(api_key, chat_id):
         pageToken=st.session_state.next_page_token
     )
     res = req.execute()
+    
     st.session_state.next_page_token = res.get("nextPageToken")
     return [i["snippet"]["displayMessage"] for i in res.get("items", [])]
 
@@ -124,7 +125,7 @@ tab1, tab2 = st.tabs([" Live Monitor", " Deteksi Manual"])
 
 with tab1:
     with st.expander("⚙️ Pengaturan Live"):
-        api_key = st.secrets.get("YOUTUBE_API_KEY")
+        api_key = st.secrets.get("YOUTUBE_API_KEY", "")
         # api_key = st.text_input("YouTube API Key", type="password")
         video_id = st.text_input("Masukkan YouTube Video ID" ,placeholder="Contoh: dQw4w9WgXcQ")
 
