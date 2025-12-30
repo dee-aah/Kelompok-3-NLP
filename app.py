@@ -6,9 +6,8 @@ from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from streamlit_autorefresh import st_autorefresh
 
-# ======================================================
 # CONFIG
-# ======================================================
+
 MODEL_PATH = "models/model_logreg.pkl"
 TFIDF_PATH = "models/tfidf.pkl"
 REFRESH_INTERVAL = 5000
@@ -16,9 +15,8 @@ label_map = {0: "Ham", 1: "Spam", 2: "Toxic"}
 
 st.set_page_config(page_title="YouTube Spam & Toxic Detector", layout="wide")
 
-# ======================================================
 # LOAD MODEL
-# ======================================================
+
 @st.cache_resource
 def load_resources():
     try:
@@ -31,9 +29,8 @@ def load_resources():
 
 model, tfidf = load_resources()
 
-# ======================================================
 # SESSION STATE
-# ======================================================
+
 def init_state():
     states = {
         "is_running": False,
@@ -48,9 +45,8 @@ def init_state():
 
 init_state()
 
-# ======================================================
 # CLASSIFICATION
-# ======================================================
+
 def classify_comment(text: str) -> str:
     url_pattern = r"(https?://\S+|www\.\S+|\S+\.(com|net|org|id|me|info))"
     if re.search(url_pattern, text, re.IGNORECASE):
@@ -63,9 +59,9 @@ def classify_comment(text: str) -> str:
 
     return "N/A"
 
-# ======================================================
+
 # YOUTUBE API
-# ======================================================
+
 def get_live_chat_id(api_key, video_id):
     yt = build("youtube", "v3", developerKey=api_key)
     res = yt.videos().list(
@@ -90,9 +86,8 @@ def fetch_live_chat(api_key, chat_id):
     st.session_state.next_page_token = res.get("nextPageToken")
     return [i["snippet"]["displayMessage"] for i in res.get("items", [])]
 
-# ======================================================
 # UI STYLE
-# ======================================================
+
 st.markdown("""
 <style>
 .chat-bubble {
@@ -113,32 +108,51 @@ st.markdown(
     "<h1 style='text-align:center;'>YouTube Live <a style='color:#FFD41D;'>Spam</a> & <a style='color:#ff4d4d;'>Toxic</a> Detector</h1>",
     unsafe_allow_html=True
     )
+st.markdown("""
+Aplikasi ini dirancang untuk memoderasi percakapan dengan mendeteksi kata-kata secara real-time pada Live Chat YouTube maupun input manual. Sistem akan secara otomatis mengklasifikasikan pesan ke dalam kategori: 
+- Ham: Pesan yang aman dan relevan.
+- Spam: Pesan yang mengandung unsur promosi atau gangguan.
+- Toxic: Pesan yang mengandung kata-kata kasar atau tidak pantas.
+""")
 
 
-# ======================================================
 # TABS
-# ======================================================
-tab1, tab2 = st.tabs(["🔴 Live Monitor", "📝 Deteksi Manual"])
 
-# ======================================================
+tab1, tab2 = st.tabs([" Live Monitor", " Deteksi Manual"])
+
 # TAB 1 - LIVE MONITOR
-# ======================================================
+
 with tab1:
     with st.expander("⚙️ Pengaturan Live"):
         api_key = st.secrets.get("YOUTUBE_API_KEY", "")
         # api_key = st.text_input("YouTube API Key", type="password")
-        video_id = st.text_input("Masukkan YouTube Video ID")
+        video_id = st.text_input("Masukkan YouTube Video ID" ,placeholder="Contoh: dQw4w9WgXcQ")
 
-        c1, c2 = st.columns(2)
-        if c1.button(":green[▶] Mulai"):
-            st.session_state.is_running = True
-            st.session_state.start_time = datetime.now()
-            st.session_state.all_comments = pd.DataFrame(columns=["Waktu", "Komentar", "Prediksi"])
-            st.rerun()
+        # c1, c2 = st.columns(2)
+        # if c1.button(":green[▶] Mulai"):
+        #     st.session_state.is_running = True
+        #     st.session_state.start_time = datetime.now()
+        #     st.session_state.all_comments = pd.DataFrame(columns=["Waktu", "Komentar", "Prediksi"])
+        #     st.rerun()
 
-        if c2.button(":red[⏹] Berhenti"):
-            st.session_state.is_running = False
-            st.rerun()
+        # if c2.button(":red[⏹] Berhenti"):
+        #     st.session_state.is_running = False
+        #     st.rerun()
+        c1, c2, = st.columns([2, 2,])
+
+        with c1:
+            if st.button(":green[ ▶ ] Mulai", use_container_width=True):
+                st.session_state.is_running = True
+                st.session_state.start_time = datetime.now()
+                st.session_state.all_comments = pd.DataFrame(columns=["Waktu", "Komentar", "Prediksi"])
+                st.rerun()
+                pass
+
+        with c2:
+            if st.button(":red[⏹] Berhenti", use_container_width=True):
+                st.session_state.is_running = False
+                st.rerun()
+                pass
 
     if st.session_state.is_running:
         elapsed = datetime.now() - st.session_state.start_time
