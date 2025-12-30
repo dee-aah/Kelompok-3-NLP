@@ -63,29 +63,45 @@ def classify_comment(text: str) -> str:
 # YOUTUBE API
 
 def get_live_chat_id(api_key, video_id):
+    try:
+        yt = build("youtube", "v3", developerKey=api_key)
+
+        res = yt.videos().list(
+            part="liveStreamingDetails,snippet",
+            id=video_id
+        ).execute()
+
+        if not res.get("items"):
+            return None, None
+
+        item = res["items"][0]
+        live_chat_id = item.get("liveStreamingDetails", {}).get("activeLiveChatId")
+        title = item.get("snippet", {}).get("title")
+
+        return live_chat_id, title
+
+    except Exception as e:
+        st.error(f"Gagal mengambil live chat ID: {e}")
+        return None, None
+    
+def get_live_chat_messages(api_key, live_chat_id, page_token=None):
     yt = build("youtube", "v3", developerKey=api_key)
-    res = yt.videos().list(
-        part="liveStreamingDetails,snippet",
-        id=video_id
+
+    response = yt.liveChatMessages().list(
+        liveChatId=live_chat_id,
+        part="snippet,authorDetails",
+        pageToken=page_token
     ).execute()
 
-    if not res["items"]:
-        return None, None
+    messages = []
+    for item in response.get("items", []):
+        msg = item["snippet"]["displayMessage"]
+        messages.append(msg)
 
-    item = res["items"][0]
-    return item["liveStreamingDetails"].get("activeLiveChatId"), item["snippet"]["title"]
+    next_token = response.get("nextPageToken")
+    return messages, next_token
 
-def fetch_live_chat(api_key, chat_id):
-    yt = build("youtube", "v3", developerKey=api_key)
-    req = yt.liveChatMessages().list(
-        liveChatId=chat_id,
-        part="snippet",
-        pageToken=st.session_state.next_page_token
-    )
-    res = req.execute()
-    
-    st.session_state.next_page_token = res.get("nextPageToken")
-    return [i["snippet"]["displayMessage"] for i in res.get("items", [])]
+
 
 # UI STYLE
 
@@ -146,6 +162,7 @@ with tab1:
                 st.session_state.is_running = True
                 st.session_state.start_time = datetime.now()
                 st.session_state.all_comments = pd.DataFrame(columns=["Waktu", "Komentar", "Prediksi"])
+                st.session_state.next_page_token = None
                 st.rerun()
                 pass
 
@@ -169,12 +186,20 @@ with tab1:
             chat_id, title = get_live_chat_id(api_key, video_id)
             if chat_id:
                 st.success(f"📺 {title}")
-                for msg in fetch_live_chat(api_key, chat_id):
-                    label = classify_comment(msg)
-                    st.session_state.all_comments.loc[len(st.session_state.all_comments)] = [
-                        datetime.now(), msg, label
-                    ]
+                messages, next_token = get_live_chat_messages(
+                    api_key,
+                    chat_id,
+                    st.session_state.next_page_token
+                )
+            st.session_state.next_page_token = next_token
+
+            for msg in messages:
+                label = classify_comment(msg)
+                st.session_state.all_comments.loc[len(st.session_state.all_comments)] = [
+                datetime.now(), msg, label
+                ]
             st_autorefresh(interval=REFRESH_INTERVAL, key="refresh")
+
     df = st.session_state.all_comments
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Total", len(df))
@@ -194,9 +219,8 @@ with tab1:
         )
 
 
-# ======================================================
 # TAB 2 - MANUAL
-# ======================================================
+
 with tab2:
     input_user = st.text_area("Masukkan teks")
 
@@ -222,9 +246,8 @@ with tab2:
             unsafe_allow_html=True
         )
 
-# ======================================================
 # SUMMARY FUNCTION
-# ======================================================
+
 def show_summary(df, title):
     if df.empty:
         return
@@ -296,10 +319,8 @@ def show_summary(df, title):
             "- Tetap lakukan pemantauan rutin"
             )
 
-
-# ======================================================
 # SHOW SUMMARY
-# ======================================================
+
 with tab1:
     if not st.session_state.is_running:
         show_summary(st.session_state.all_comments, "Live Chat")
