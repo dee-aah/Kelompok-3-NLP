@@ -5,6 +5,7 @@ import pandas as pd
 from datetime import datetime, timedelta
 from googleapiclient.discovery import build
 from streamlit_autorefresh import st_autorefresh
+from google.auth.credentials import AnonymousCredentials
 
 # CONFIG
 
@@ -64,7 +65,7 @@ def classify_comment(text: str) -> str:
 
 def get_live_chat_id(api_key, video_id):
     try:
-        yt = build("youtube", "v3", developerKey=api_key)
+        yt = build("youtube", "v3", developerKey=api_key, credentials=AnonymousCredentials())
 
         res = yt.videos().list(
             part="liveStreamingDetails,snippet",
@@ -84,22 +85,40 @@ def get_live_chat_id(api_key, video_id):
         st.error(f"Gagal mengambil live chat ID: {e}")
         return None, None
     
+from googleapiclient.discovery import build
+from google.auth.credentials import AnonymousCredentials
+
 def get_live_chat_messages(api_key, live_chat_id, page_token=None):
-    yt = build("youtube", "v3", developerKey=api_key)
+    try:
+        yt = build(
+            "youtube",
+            "v3",
+            developerKey=api_key,
+            credentials=AnonymousCredentials()
+        )
 
-    response = yt.liveChatMessages().list(
-        liveChatId=live_chat_id,
-        part="snippet,authorDetails",
-        pageToken=page_token
-    ).execute()
+        response = yt.liveChatMessages().list(
+            liveChatId=live_chat_id,
+            part="snippet,authorDetails",
+            pageToken=page_token
+        ).execute()
 
-    messages = []
-    for item in response.get("items", []):
-        msg = item["snippet"]["displayMessage"]
-        messages.append(msg)
+        messages = []
 
-    next_token = response.get("nextPageToken")
-    return messages, next_token
+        for item in response.get("items", []):
+            snippet = item.get("snippet", {})
+            msg = snippet.get("displayMessage")
+
+            if msg:
+                messages.append(msg)
+
+        next_token = response.get("nextPageToken")
+        return messages, next_token
+
+    except Exception as e:
+        st.error(f"Gagal mengambil pesan live chat: {e}")
+        return [], None
+
 
 
 
